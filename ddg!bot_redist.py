@@ -5,10 +5,10 @@ import duckduckgo as ddg
 import json
 
 blocked = {}
-html_tags = {"b" : "**",
-             "i" : "_",
-             "br/" : "\n",
-             "u" : "__"}
+html_tags = {"b": "**",
+             "i": "_",
+             "br/": "\n",
+             "u": "__"}
 commands = {}
 safesearch_values = {}
 
@@ -32,7 +32,8 @@ $$ ddg!bot $$
 Powered by DuckDuckGo: {https://duckduckgo.com/about}
 ```'''
 
-git_msg='''`duckduckgo-python3` <http://github.com/eye-sigil/duckduckgo-python3>
+git_msg = '''`duckduckgo-python3` <http://github.com/eye-sigil/duckduckgo-python3>
+`duckduckbot-discord` <https://github.com/eye-sigil/duckduckbot-discord>
 
 _All components under development. Results may be unexpected._'''
 
@@ -43,11 +44,13 @@ addbot_msg = '''_To add this bot to your server, please use this link: <https://
 client = discord.Client(max_messages=100)
 print('Created discord.Client.')
 
+
 def add_command(name=None):
     def inner(func):
         commands[func.__name__] = func
         return func
     return inner
+
 
 def detect_call(message):
     if message.author.bot or message.author.id in blocked.values():
@@ -57,26 +60,32 @@ def detect_call(message):
     else:
         return False
 
+
 @add_command()
 def about():
     return about_msg
 
+
 @add_command()
 def git():
     return git_msg
+
 
 @add_command()
 def connected():
     servers = [s.name for s in client.servers]
     return '```{}```'.format(str(servers))
 
+
 @add_command()
 def server():
     return server_msg
 
+
 @add_command()
 def addbot():
     return addbot_msg
+
 
 @add_command()
 def safesearch(s_id):
@@ -86,6 +95,7 @@ def safesearch(s_id):
         safesearch_values[s_id] = True
 
     return 'Server safesearch now set to **{}.**\n\n_**Note:** This does nothing right now._'.format(str(safesearch_values[s_id]))
+
 
 @add_command()
 def help():
@@ -103,8 +113,8 @@ def help():
 
     return help_msg
 
-def get_query(command):
 
+def get_query(command):
     '''
     Gets a result from DuckDuckGo's API.
     Also a prototype for the new duckduckgo-python3 get_zci() logic.
@@ -116,15 +126,16 @@ def get_query(command):
         result = "```{}: {}```\n{}".format(e.__class__.__name__, str(e), broken)
 
     #result = ddg.query(search, html=True)
-    #if result == ' ' or result == '':
+    # if result == ' ' or result == '':
     #    result = ddg.get_zci(search)
-    #if len(result):
+    # if len(result):
 
     return result
 
-#def format_result(result):
+# def format_result(result):
 #    formatted = ''
 #    formatted = result.replace()
+
 
 @client.event
 async def on_ready():
@@ -133,14 +144,16 @@ async def on_ready():
     Executed when the bot successfully connects to Discord.
     '''
 
-    print('\nLogged in as:')
-    print(client.user.name)
-    print(client.user.id)
-    print('------')
-    print('Ready to !bang.')
-    print('')
+    print('''
+Logged in as...
+USER: {}
+ID: {}
+------
+Ready to !bang.
+'''.format(client.user.name, client.user.id))
 
     await client.change_status(game=discord.Game(name="ddg!help"))
+
 
 @client.event
 async def on_message(message):
@@ -160,21 +173,21 @@ async def on_message(message):
             channel = message.channel.name
 
         print('Input: {}, {}\nServer: {}\nChannel: {}'.format(message.author.name,
-                                                 message.content,
-                                                 server,
-                                                 channel))
+                                                              message.content,
+                                                              server,
+                                                              channel))
 
         if client.user.mentioned_in(message):
-            command = message.content.replace('<@183615935955861504>','')
+            command = message.content.replace('<@183615935955861504>', '')
         else:
-            command = message.content.replace('ddg!','')
+            command = message.content.replace('ddg!', '')
         print('Stripped: {}'.format(command))
 
         #command = message.clean_content
 
         if command == '':
             output = about()
-        elif command == 'safesearch':
+        elif command.startswith('safesearch'):
             output = safesearch(message.server.id)
         elif command in commands:
             output = commands[command]()

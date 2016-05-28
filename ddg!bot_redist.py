@@ -4,6 +4,11 @@ import asyncio
 import duckduckgo as ddg
 import json
 
+# Bot Info
+__author__ = 'eye-sigil'
+__version__ = 0.2
+
+#
 blocked = {}
 html_tags = {"b": "**",
              "i": "_",
@@ -12,25 +17,34 @@ html_tags = {"b": "**",
 commands = {}
 safesearch_values = {}
 
+# Message Templates
 
-broken = '''Sorry, but it seems your query was somehow broken. I may have been ratelimited on **DuckDuckGo\'s** end.
+ready_msg = '''
+Logged in as...
+USER: {}
+ID: {}
+------
+Ready to !bang.
+'''
+
+broken_msg = '''Sorry, but it seems your query was somehow broken. I may have been ratelimited on **DuckDuckGo\'s** end.
 
 _**NOTE:** This bot and `duckduckgo-python3` are still in development. Results may be unexpected._'''
 
 about_msg = '''```tex
 $$ ddg!bot $$
 
-# OWNER: {eye-sigil}
-# LIB: {discord.py 0.10.0} {Rapptz, Python}
-# VERSION: {0.1 Indev}
+# OWNER: {{{}}}
+# LIB: {{discord.py {}}} {{Rapptz, Python}}
+# VERSION: {{{}}}
 
-% ddg!bot is a frontend for the DuckDuckGo Instant Answers API.
-% It is made for quick searches and info grabbing on Discord.
-% It supports perserver safesearch, result scraping, and all DDG search syntax.
-% Ready to !bang?
+% \ddg!bot is a frontend for the DuckDuckGo Instant Answers API.
+% \It is made for quick searches and info grabbing on Discord.
+% \It supports perserver safesearch, result scraping, and all DDG search syntax.
+% \Ready to !bang?
 
-Powered by DuckDuckGo: {https://duckduckgo.com/about}
-```'''
+Powered by DuckDuckGo: {{https://duckduckgo.com/about}}
+```'''.format(__author__, discord.__version__, __version__)
 
 git_msg = '''`duckduckgo-python3` <http://github.com/eye-sigil/duckduckgo-python3>
 `duckduckbot-discord` <https://github.com/eye-sigil/duckduckbot-discord>
@@ -41,11 +55,27 @@ server_msg = '''_For more help on this bot, please visit: <https://discord.gg/01
 
 addbot_msg = '''_To add this bot to your server, please use this link: <https://goo.gl/IEEHtI>_'''
 
+safesearch_msg = '''Server safesearch now set to **{}.**
+
+_**Note:** This does nothing right now._'''
+
+help_msg = '''**All commands are called with `ddg!command` or `@ddgcommand`, no spaces.**
+
+**`@ddg search here` and `ddg! search here` will also return a search to _DuckDuckGo_.**
+
+```tex
+{}
+```'''
+
 client = discord.Client(max_messages=100)
-print('Created discord.Client.')
+print('\nCreated discord.Client...')
 
 
 def add_command(name=None):
+    '''
+    Adds a command to the commands list. Allows Discord users to call it.
+    '''
+
     def inner(func):
         commands[func.__name__] = func
         return func
@@ -53,68 +83,93 @@ def add_command(name=None):
 
 
 def detect_call(message):
+    '''
+    Detects a bot call. Ran on every message received.
+    '''
+
     if message.author.bot or message.author.id in blocked.values():
         return False
-    if (message.content.startswith('<@183615935955861504>') or message.content.startswith('ddg!')) and len(message.content) > 1:
+    if (client.user.mentioned_in(message) or message.content.startswith('ddg!')) and len(message.content) > 1:
         return True
     else:
         return False
 
 
 @add_command()
-def about():
+def about(message):
+    '''
+    Returns info on the bot.
+    '''
+
     return about_msg
 
 
 @add_command()
-def git():
+def git(message):
+    '''
+    Returns info about the github repos.
+    '''
+
     return git_msg
 
 
 @add_command()
-def connected():
+def connected(message):
+    '''
+    Returns a list of servers bot is in.
+    '''
+
     servers = [s.name for s in client.servers]
     return '```{}```'.format(str(servers))
 
 
 @add_command()
-def server():
+def server(message):
+    '''
+    Returns help server link.
+    '''
+
     return server_msg
 
 
 @add_command()
-def addbot():
+def addbot(message):
+    '''
+    Returns bot OAuth link.
+    '''
+
     return addbot_msg
 
 
 @add_command()
-def safesearch(s_id):
+def safesearch(message):
+    '''
+    Toggles safesearch on and off for a particular server.
+    '''
+
     if s_id in safesearch_values:
         safesearch_values[s_id] = not safesearch_values[s_id]
     else:
         safesearch_values[s_id] = True
 
-    return 'Server safesearch now set to **{}.**\n\n_**Note:** This does nothing right now._'.format(str(safesearch_values[s_id]))
+    return safesearch_msg.format(str(safesearch_values[s_id]))
 
 
 @add_command()
-def help():
+def help(message):
+    '''
+    Returns a list of commands and help on bot usage.
+    '''
 
-    help_msg = '''**All commands are called with `ddg!command` or `@ddgcommand`, no spaces.**
-
-**`@ddg search here` and `ddg! search here` will also return a search to _DuckDuckGo_.**
-
-```tex\n'''
-
+    help_list = ''
     for command in commands:
-        help_msg += '# {}\n'.format(command)
+        help_list += '# {}\n'.format(command)
 
-    help_msg += '```'
-
-    return help_msg
+    return help_msg.format(help_list)
 
 
-def get_query(command):
+@add_command()
+def search(command):
     '''
     Gets a result from DuckDuckGo's API.
     Also a prototype for the new duckduckgo-python3 get_zci() logic.
@@ -123,9 +178,9 @@ def get_query(command):
     try:
         result = ddg.get_zci(command)
     except Exception as e:
-        result = "```{}: {}```\n{}".format(e.__class__.__name__, str(e), broken)
+        result = broken_msg.format(e.__class__.__name__, str(e))
 
-    #result = ddg.query(search, html=True)
+    # result = ddg.query(search, html=True)
     # if result == ' ' or result == '':
     #    result = ddg.get_zci(search)
     # if len(result):
@@ -139,32 +194,27 @@ def get_query(command):
 
 @client.event
 async def on_ready():
-
     '''
     Executed when the bot successfully connects to Discord.
     '''
 
-    print('''
-Logged in as...
-USER: {}
-ID: {}
-------
-Ready to !bang.
-'''.format(client.user.name, client.user.id))
+    # Current Account
+    print(ready_msg.format(client.user.name, client.user.id))
 
+    # Help Hint
     await client.change_status(game=discord.Game(name="ddg!help"))
 
 
 @client.event
 async def on_message(message):
-
     '''
-    Executed when the bot recieves a message.
+    Executed when the bot receives a message.
     [message] is a discord.Message object, representing the sent message.
     '''
 
     if detect_call(message):
 
+        # Info
         if message.channel.is_private:
             server = 'N/A'
             channel = 'Direct Message'
@@ -173,29 +223,30 @@ async def on_message(message):
             channel = message.channel.name
 
         print('Input: {}, {}\nServer: {}\nChannel: {}'.format(message.author.name,
-                                                              message.content,
+                                                              message.clean_content,
                                                               server,
                                                               channel))
 
-        if client.user.mentioned_in(message):
-            command = message.content.replace('<@183615935955861504>', '')
-        else:
-            command = message.content.replace('ddg!', '')
+        # Stripping
+        command = message.clean_content
+        for mention in message.mentions:
+            command = command.replace('@{}'.format(mention.display_name), '')
+        command = command.replace('ddg!', '')
+        command = command.strip()
+
         print('Stripped: {}'.format(command))
 
-        #command = message.clean_content
-
+        # Parsing
         if command == '':
             output = about()
-        elif command.startswith('safesearch'):
-            output = safesearch(message.server.id)
         elif command in commands:
-            output = commands[command]()
+            output = commands[command](message)
         else:
-            output = get_query(command)
+            output = search(command)
 
         print('Output:\n{}'.format(output))
 
+        # Outputting
         await client.send_message(message.channel, output)
         print('\n')
 

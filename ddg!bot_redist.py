@@ -1,4 +1,3 @@
-
 import discord
 import asyncio
 import duckduckgo as ddg
@@ -8,16 +7,16 @@ import json
 __author__ = 'eye-sigil'
 __version__ = 0.2
 
-#
+# Settings
 blocked = {}
-html_tags = {"b": "**",
-             "i": "_",
-             "br/": "\n",
-             "u": "__"}
 commands = {}
 safesearch_values = {}
 
 # Message Templates
+html_tags = {"b": "**",
+             "i": "_",
+             "br/": "\n",
+             "u": "__"}
 
 ready_msg = '''
 Logged in as...
@@ -27,7 +26,8 @@ ID: {}
 Ready to !bang.
 '''
 
-broken_msg = '''Sorry, but it seems your query was somehow broken. I may have been ratelimited on **DuckDuckGo\'s** end.
+broken_msg = '''```{}: {}```
+Sorry, but it seems your query was somehow broken. I may have been ratelimited on **DuckDuckGo\'s** end.
 
 _**NOTE:** This bot and `duckduckgo-python3` are still in development. Results may be unexpected._'''
 
@@ -81,7 +81,6 @@ def add_command(name=None):
         return func
     return inner
 
-
 def detect_call(message):
     '''
     Detects a bot call. Ran on every message received.
@@ -89,7 +88,7 @@ def detect_call(message):
 
     if message.author.bot or message.author.id in blocked.values():
         return False
-    if (client.user.mentioned_in(message) or message.content.startswith('ddg!')) and len(message.content) > 1:
+    elif (client.user.mentioned_in(message) or message.content.startswith('ddg!')) and len(message.content) > 1:
         return True
     else:
         return False
@@ -179,6 +178,8 @@ def search(command):
         result = ddg.get_zci(command)
     except Exception as e:
         result = broken_msg.format(e.__class__.__name__, str(e))
+    if result.startswith('https://api.duckduckgo.com'):
+        result = '**Sorry, no results were found.**'
 
     # result = ddg.query(search, html=True)
     # if result == ' ' or result == '':
@@ -229,8 +230,7 @@ async def on_message(message):
 
         # Stripping
         command = message.clean_content
-        for mention in message.mentions:
-            command = command.replace('@{}'.format(mention.display_name), '')
+        command = command.replace('@{}'.format(message.server.me.display_name), '')
         command = command.replace('ddg!', '')
         command = command.strip()
 

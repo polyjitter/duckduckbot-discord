@@ -5,7 +5,7 @@ import json
 
 # Bot Info
 __author__ = 'eye-sigil'
-__version__ = 0.2
+__version__ = '0.2.3'
 
 # Settings
 blocked = {}
@@ -38,10 +38,10 @@ $$ ddg!bot $$
 # LIB: {{discord.py {}}} {{Rapptz, Python}}
 # VERSION: {{{}}}
 
-% \ddg!bot is a frontend for the DuckDuckGo Instant Answers API.
-% \It is made for quick searches and info grabbing on Discord.
-% \It supports perserver safesearch, result scraping, and all DDG search syntax.
-% \Ready to !bang?
+% ddg!bot is a frontend for the DuckDuckGo Instant Answers API.
+% It is made for quick searches and info grabbing on Discord.
+% It supports perserver safesearch, result scraping, and all DDG search syntax.
+% Ready to !bang?
 
 Powered by DuckDuckGo: {{https://duckduckgo.com/about}}
 ```'''.format(__author__, discord.__version__, __version__)
@@ -59,9 +59,9 @@ safesearch_msg = '''Server safesearch now set to **{}.**
 
 _**Note:** This does nothing right now._'''
 
-help_msg = '''**All commands are called with `ddg!command` or `@ddgcommand`, no spaces.**
+help_msg = '''**All commands are called with `ddg!command` or `@ddgcommand`.**
 
-**`@ddg search here` and `ddg! search here` will also return a search to _DuckDuckGo_.**
+**`ddg! search here` and `@ddg search here` will also return a search to _DuckDuckGo_.**
 
 ```tex
 {}
@@ -81,6 +81,7 @@ def add_command(name=None):
         return func
     return inner
 
+
 def detect_call(message):
     '''
     Detects a bot call. Ran on every message received.
@@ -88,7 +89,7 @@ def detect_call(message):
 
     if message.author.bot or message.author.id in blocked.values():
         return False
-    elif (client.user.mentioned_in(message) or message.content.startswith('ddg!')) and len(message.content) > 1:
+    elif message.clean_content.startswith('@{}'.format(message.server.me.display_name)) or message.clean_content.startswith('ddg!'):
         return True
     else:
         return False
@@ -145,6 +146,8 @@ def safesearch(message):
     '''
     Toggles safesearch on and off for a particular server.
     '''
+
+    s_id = message.server.id
 
     if s_id in safesearch_values:
         safesearch_values[s_id] = not safesearch_values[s_id]
@@ -211,7 +214,7 @@ async def on_message(message):
     '''
     Executed when the bot receives a message.
     [message] is a discord.Message object, representing the sent message.
-    '''
+    # '''
 
     if detect_call(message):
 
@@ -238,7 +241,7 @@ async def on_message(message):
 
         # Parsing
         if command == '':
-            output = about()
+            output = about(message)
         elif command in commands:
             output = commands[command](message)
         else:
